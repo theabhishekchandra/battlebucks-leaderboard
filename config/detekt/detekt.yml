@@ -1,0 +1,57 @@
+# Layered on top of detekt's default rules (buildUponDefaultConfig = true), so this file only
+# records where we deliberately differ — and why. A config full of blanket disables is worse than
+# no config, because it hides which rules the team actually decided about.
+
+build:
+  maxIssues: 0
+
+naming:
+  FunctionNaming:
+    # @Composable functions are PascalCase by Compose convention: they name a UI element, not an
+    # action. This is Jetpack's documented style, not a local preference.
+    ignoreAnnotated: ['Composable']
+
+style:
+  MagicNumber:
+    # Off in presentation code, on everywhere else — the distinction is the point.
+    #
+    # In `ui/` the literals ARE the content: dp offsets, sp sizes, colour channels, path
+    # coordinates, animation durations. Hoisting `0.62f` out of a Bézier curve into
+    # `CREST_UPPER_CONTROL_X` moves the number without explaining it, and there are ~50 of them in
+    # one hand-drawn emblem. In :engine and :leaderboard an unexplained constant is a genuine
+    # smell, so the rule stays armed there.
+    # Test sources are in detekt's default exclusions; naming them here restores that, because
+    # supplying `excludes` replaces the default list rather than adding to it. Concrete literals
+    # are what a test is made of.
+    excludes: ['**/ui/**', '**/test/**', '**/androidTest/**']
+    ignoreRanges: true
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+  MaxLineLength:
+    maxLineLength: 100
+  ReturnCount:
+    # Early returns used as guard clauses read better than the nested alternative.
+    excludeGuardClauses: true
+  ForbiddenComment:
+    # TODO/FIXME are how work-in-progress is tracked in review; failing the build on them just
+    # pushes people to write untracked comments instead.
+    active: false
+  UnusedPrivateMember:
+    # @Preview composables are entry points for the IDE tooling, so they are never "called".
+    ignoreAnnotated: ['Preview', 'Composable']
+
+complexity:
+  TooManyFunctions:
+    # A Compose screen is built from many small, private, single-purpose composables — that is the
+    # idiom, and splitting one screen across files to satisfy a counter would make it harder to
+    # read, not easier. Functions themselves are still held to LongMethod.
+    thresholdInFiles: 25
+  LongParameterList:
+    # Domain events and UI state carry a lot of named fields by design; that is data, not
+    # complexity. Functions are still held to the default.
+    ignoreAnnotated: ['Composable']
+    ignoreDataClasses: true
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: true

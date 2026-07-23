@@ -1,0 +1,23 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{kt,kts}]
+# android_studio rather than ktlint_official: it matches what Android Studio's formatter
+# produces out of the box, so "format the file" and "pass CI" are the same action for anyone
+# on the team. ktlint_official enforces aggressive signature wrapping that fights the IDE.
+ktlint_code_style = android_studio
+max_line_length = 100
+indent_size = 4
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+
+[*.{yml,yaml,json}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
