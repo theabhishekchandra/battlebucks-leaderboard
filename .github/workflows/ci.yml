@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  # A new push supersedes the run in flight; no point burning minutes on a stale commit.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Accept Android SDK licences
+        # compileSdk 37 is fetched by AGP on demand, which needs the licences accepted first.
+        uses: android-actions/setup-android@v3
+
+      # Style and static analysis run first: they are the fastest signal, and a failure here
+      # should not wait behind a full Android build.
+      - name: ktlint
+        run: ./gradlew ktlintCheck
+
+      - name: detekt
+        run: ./gradlew detekt
+
+      # The domain modules are pure JVM, so this is the real correctness gate and it runs in
+      # seconds without an emulator. Ranking rules are proven here, not in an instrumented test.
+      - name: Unit tests
+        run: ./gradlew :engine:test :leaderboard:test :app:testDebugUnitTest
+
+      - name: Android Lint
+        run: ./gradlew :app:lintDebug
+
+      - name: Assemble debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            engine/build/reports/tests/
+            leaderboard/build/reports/tests/
+            '**/build/reports/detekt/'
+          retention-days: 7
